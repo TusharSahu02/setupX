@@ -15,3 +15,4 @@ npm install -g setupx
 ```bash
 setupX
 ```
+

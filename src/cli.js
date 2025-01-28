@@ -9,23 +9,23 @@ import chalk from 'chalk';
 
 // Define available templates
 const TEMPLATES = {
-    nodejs: {
-        name: 'Node.js',
-        description: 'A basic Node.js project with Express',
-        setup: (projectPath) => {
-            // Create folders
-            const folders = ['models', 'controllers', 'routes', 'config', 'utils', 'services', 'middleware'];
-            folders.forEach((folder) => {
-                fs.mkdirSync(path.join(projectPath, folder));
-                console.log(chalk.green(`Created folder: ${folder}`));
-            });
+  nodejs: {
+    name: 'Node.js',
+    description: 'A basic Node.js project with Express',
+    setup: (projectPath) => {
+      // Create folders
+      const folders = ['models', 'controllers', 'routes', 'config', 'utils', 'services', 'middleware'];
+      folders.forEach((folder) => {
+        fs.mkdirSync(path.join(projectPath, folder));
+        console.log(chalk.green(`Created folder: ${folder}`));
+      });
 
-            // Create index.js
-            const indexJsContent = `import express from \"express\";
-import dotenv from \"dotenv\";
-import { createServer } from \"./server.js\";
-import morgan from \"morgan\";
-import config from \"./utils/config.js\";
+      // Create index.js
+      const indexJsContent = `const express = require('express');
+const dotenv = require('dotenv');
+const { createServer } = require('./server.js');
+const morgan = require('morgan');
+const config = require('./utils/config.js');
 
 dotenv.config();
 
@@ -44,17 +44,17 @@ const server = createServer(app, PORT);
 // Start server
 server.startServer();`;
 
-            fs.writeFileSync(path.join(projectPath, 'index.js'), indexJsContent);
-            console.log(chalk.green('Created file: index.js'));
+      fs.writeFileSync(path.join(projectPath, 'index.js'), indexJsContent);
+      console.log(chalk.green('Created file: index.js'));
 
-            // Create server.js
-            const serverJsContent = `
-import express from \"express\";
-import cors from \"cors\";
-import cookieParser from \"cookie-parser\";
-import session from \"express-session\";
-import { logger } from \"./utils/logger.js\";
-import config from \"./utils/config.js\";
+      // Create server.js
+      const serverJsContent = `
+const express = require('express');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const { logger } = require('./utils/logger.js');
+const config = require('./utils/config.js');
 
 const createServer = (app, port) => {
   // Middleware setup
@@ -106,16 +106,16 @@ const createServer = (app, port) => {
   return { startServer };
 };
 
-export { createServer };`;
-            fs.writeFileSync(path.join(projectPath, 'server.js'), serverJsContent);
-            console.log(chalk.green('Created file: server.js'));
+module.exports = { createServer };`;
+      fs.writeFileSync(path.join(projectPath, 'server.js'), serverJsContent);
+      console.log(chalk.green('Created file: server.js'));
 
 
-            // Create logger.js
-            const loggerJsContent = `import winston from "winston";\n
-import config from "./config.js";
+      // Create logger.js
+      const loggerJsContent = `const winston = require("winston");
+const config = require("./config.js");
 
-export const logger = winston.createLogger({
+const logger = winston.createLogger({
   level: "info",
   format: winston.format.combine(
     winston.format.timestamp({
@@ -143,84 +143,97 @@ if (config.NODE_ENV !== "production") {
       ),
     })
   );
-}`
-            fs.writeFileSync(path.join(projectPath, 'utils/logger.js'), loggerJsContent);
-            console.log(chalk.green('Created file: logger.js'));
+}
+
+module.exports = { logger };
+`
+      fs.writeFileSync(path.join(projectPath, 'utils/logger.js'), loggerJsContent);
+      console.log(chalk.green('Created file: logger.js'));
 
 
-            // Create config.js
-            const configJsContent = `import dotenv from "dotenv";
-
-// require('dotenv-safe').load();  -> for production
+      // Create config.js
+      const configJsContent = `const dotenv = require("dotenv");
 
 dotenv.config();
 
-export default {
-  PORT: process.env.PORT,
-  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
-  NODE_ENV: process.env.NODE_ENV,
-  SESSION_SECRET: process.env.SESSION_SECRET,
+module.exports = {
+  PORT: process.env.PORT || 5000,
+  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || "*",
+  NODE_ENV: process.env.NODE_ENV || "development",
+  SESSION_SECRET: process.env.SESSION_SECRET || "your-secret-key",
 };`
 
 
-            fs.writeFileSync(path.join(projectPath, 'utils/config.js'), configJsContent);
-            console.log(chalk.green('Created file: config.js'));
-            // Initialize npm and install dependencies
-            shell.cd(projectPath);
-            shell.exec('npm init -y');
-            shell.exec('npm install express dotenv morgan cors cookie-parser express-session passport');
-            shell.exec('npm install nodemon -D');
-            console.log(chalk.green('Initialized npm project and installed dependencies.'));
-        },
+      fs.writeFileSync(path.join(projectPath, 'utils/config.js'), configJsContent);
+      console.log(chalk.green('Created file: config.js'));
+      // Initialize npm and install dependencies
+      shell.cd(projectPath);
+      shell.exec('npm init -y');
+      shell.exec('npm install express dotenv morgan cors cookie-parser express-session winston');
+      shell.exec('npm install nodemon -D');
+      console.log(chalk.green('Initialized npm project and installed dependencies.'));
+
+      // Read package.json
+      const packageJsonPath = path.join(projectPath, 'package.json');
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+
+      // Modify package.json
+      packageJson.scripts = packageJson.scripts || {};
+      packageJson.scripts.dev = "nodemon index.js";
+      packageJson.scripts.start = "node index.js";
+
+      // Write package.json back to file
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
     },
+  },
 };
 
 // Define the CLI command
 program
-    .version('1.0.0')
-    .description('A universal CLI tool to set up project templates')
-    .action(async () => {
-        try {
-            // Prompt the user to select a template
-            const { template } = await inquirer.prompt([
-                {
-                    type: 'list',
-                    name: 'template',
-                    message: 'Select a template:',
-                    choices: Object.keys(TEMPLATES).map((key) => ({
-                        name: `${TEMPLATES[key].name} - ${TEMPLATES[key].description}`,
-                        value: key,
-                    })),
-                },
-            ]);
+  .version('1.0.0')
+  .description('A universal CLI tool to set up project templates')
+  .action(async () => {
+    try {
+      // Prompt the user to select a template
+      const { template } = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'template',
+          message: 'Select a template:',
+          choices: Object.keys(TEMPLATES).map((key) => ({
+            name: `${TEMPLATES[key].name} - ${TEMPLATES[key].description}`,
+            value: key,
+          })),
+        },
+      ]);
 
-            // Prompt the user for the project name
-            const { projectName } = await inquirer.prompt([
-                {
-                    type: 'input',
-                    name: 'projectName',
-                    message: 'Enter the project name:',
-                    validate: (input) => {
-                        if (!input) return 'Project name cannot be empty!';
-                        if (fs.existsSync(input)) return 'Folder already exists!';
-                        return true;
-                    },
-                },
-            ]);
+      // Prompt the user for the project name
+      const { projectName } = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'projectName',
+          message: 'Enter the project name:',
+          validate: (input) => {
+            if (!input) return 'Project name cannot be empty!';
+            if (fs.existsSync(input)) return 'Folder already exists!';
+            return true;
+          },
+        },
+      ]);
 
-            // Create the project folder
-            const projectPath = path.join(process.cwd(), projectName);
-            fs.mkdirSync(projectPath);
-            console.log(chalk.green(`Created folder: ${projectName}`));
+      // Create the project folder
+      const projectPath = path.join(process.cwd(), projectName);
+      fs.mkdirSync(projectPath);
+      console.log(chalk.green(`Created folder: ${projectName}`));
 
-            // Run the template setup
-            TEMPLATES[template].setup(projectPath);
+      // Run the template setup
+      TEMPLATES[template].setup(projectPath);
 
-            console.log(chalk.bold.blue('\nProject setup complete!'));
-        } catch (error) {
-            console.error(chalk.red('Error:', error.message));
-        }
-    });
+      console.log(chalk.bold.blue('\nProject setup complete!'));
+    } catch (error) {
+      console.error(chalk.red('Error:', error.message));
+    }
+  });
 
 // Parse command-line arguments
 program.parse(process.argv);

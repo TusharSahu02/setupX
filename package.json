@@ -1,6 +1,6 @@
 {
   "name": "setupx",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "A universal CLI tool to set up project templates",
   "main": "dist/cli.js",
   "type": "module",
